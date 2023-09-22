@@ -20,6 +20,7 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
+
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
@@ -88,13 +89,20 @@ timer_elapsed (int64_t then) {
 }
 
 /* Suspends execution for approximately TICKS timer ticks. */
+// semaphore, lock, barrier등 을 통해 멈춰야 하는데??
+// 쓰레드가 돌아가고 있는지 아닌지 어떻게 알지??
+// 
+
 void
 timer_sleep (int64_t ticks) {
+	printf("\n####################%lld#####################\n",ticks);
 	int64_t start = timer_ticks ();
-
 	ASSERT (intr_get_level () == INTR_ON);
 	while (timer_elapsed (start) < ticks)
 		thread_yield ();
+		printf("\n####### ticks #############%lld#####################\n",ticks);
+		printf("\n####### start #############%lld#####################\n",start);
+	printf("\n timer_sleep 끝\n");
 }
 
 /* Suspends execution for approximately MS milliseconds. */

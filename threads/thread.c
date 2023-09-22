@@ -296,6 +296,7 @@ thread_exit (void) {
    may be scheduled again immediately at the scheduler's whim. */
 void
 thread_yield (void) {
+	printf("\n####################I'm in thread_yield######################\n");
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
