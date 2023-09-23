@@ -161,7 +161,7 @@ thread_start (void) {
 /* Prints thread statistics. */
 void
 thread_print_stats (void) {
-	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
+	printf ("idle ticks : %lld , kernel ticks : %lld , user ticks : %lld \n",
 			idle_ticks, kernel_ticks, user_ticks);
 }
 
@@ -171,7 +171,7 @@ void
 thread_tick (void) {
 	struct thread *t = thread_current ();
 	// print_ready_list();
-	printf("idle_thread : %s, thread_current : %s\n", idle_thread->name, t->name);
+	// printf("idle_thread : %s, thread_current : %s\n", idle_thread->name, t->name);
 	/* Update statistics. */
 	if (t == idle_thread)
 		idle_ticks++;
@@ -180,14 +180,30 @@ thread_tick (void) {
 		user_ticks++;
 #endif
 	else
-	printf("from %s to %s\n", idle_thread->name, t->name);
+	// printf("from %s to %s\n", idle_thread->name, t->name);
 		kernel_ticks++;
-	
-thread_print_stats ();
 
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
+
+	thread_print_stats();
+
+	// struct list_elem* now;
+	// struct thread* now_t;
+
+	// while (!list_empty(&block_list)) {
+	// 	now = list_begin(&block_list);
+	// 	now_t = list_entry(now, struct thread, elem);
+
+	// 	if (now_t->endTick > tick){
+	// 		break;
+	// 	}
+	// 	list_pop_front(&block_list);
+	// 	print_sleep_list();
+	// 	thread_unblock(now_t);
+	// }
+	
 }
 
 
@@ -659,7 +675,7 @@ void wakeUp(int64_t ticks){
 			break;
 		}else{
 			struct thread* enterThread = list_entry(list_pop_front(&block_list), struct thread, elem);
-			thread_unblock(&enterThread);
+			thread_unblock(enterThread);
 		}
 	}
 }
@@ -667,9 +683,12 @@ void wakeUp(int64_t ticks){
 void insert_blockList(int64_t endtick){
 	struct thread *curr = thread_current ();
 	enum intr_level old_level; // 현재 인터럽트 레벨 저장
+
+	curr->endTick = endtick;
+	old_level = intr_disable();
 	if(curr != idle_thread){
-		curr->endTick = endtick;
-		list_insert_ordered(&block_list, &curr, my_less_func, NULL);
+		
+		list_insert_ordered(&block_list, &(curr->elem), my_less_func, NULL);
 		do_schedule(THREAD_BLOCKED);
 	}
 	intr_set_level(old_level);
