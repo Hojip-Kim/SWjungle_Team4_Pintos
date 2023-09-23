@@ -28,7 +28,7 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-static struct list block_list;
+static struct list wait_list;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -113,7 +113,7 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
-	list_init(&block_list); // change
+	list_init(&wait_list); // change
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -293,7 +293,9 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	list_insert_ordered(&ready_list, &t->elem, my_less_func,NULL) // priorty
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -663,18 +665,18 @@ bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *au
 
     // 여기서 struct_a와 struct_b의 멤버나 값을 사용하여 비교를 수행합니다.
     // 예를 들면:
-    return  a_dot->endTick < b_dot->endTick;
+    return  a_dot->priority < b_dot->priority;
 }
 
 void wakeUp(int64_t ticks){
 
-	while(!list_empty(&block_list)){
-		struct thread* thread = list_entry(list_front(&block_list), struct thread, elem);
+	while(!list_empty(&wait_list)){
+		struct thread* thread = list_entry(list_front(&wait_list), struct thread, elem);
 
 		if(thread->endTick > ticks){
 			break;
 		}else{
-			struct thread* enterThread = list_entry(list_pop_front(&block_list), struct thread, elem);
+			struct thread* enterThread = list_entry(list_pop_front(&wait_list), struct thread, elem);
 			thread_unblock(enterThread);
 		}
 	}
@@ -688,7 +690,7 @@ void insert_blockList(int64_t endtick){
 	old_level = intr_disable();
 	if(curr != idle_thread){
 		
-		list_insert_ordered(&block_list, &(curr->elem), my_less_func, NULL);
+		list_insert_ordered(&wait_list, &(curr->elem), my_less_func, NULL);
 		do_schedule(THREAD_BLOCKED);
 	}
 	intr_set_level(old_level);
