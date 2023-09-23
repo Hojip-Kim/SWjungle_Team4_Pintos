@@ -28,6 +28,8 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+static struct list block_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -108,6 +110,7 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init(&block_list); // change
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -147,11 +150,13 @@ thread_tick (void) {
 		user_ticks++;
 #endif
 	else
+	printf("from %s to %s\n", idle_thread->name, t->name);
 		kernel_ticks++;
 
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
+	thread_print_stats();
 }
 
 /* Prints thread statistics. */
@@ -216,11 +221,20 @@ thread_create (const char *name, int priority,
    This function must be called with interrupts turned off.  It
    is usually a better idea to use one of the synchronization
    primitives in synch.h. */
+// void
+// thread_block (void) { 
+// 	ASSERT (!intr_context ());
+// 	ASSERT (intr_get_level () == INTR_OFF);
+// 	thread_current ()->status = THREAD_BLOCKED;
+// 	schedule ();
+// }
+
 void
 thread_block (void) { 
 	ASSERT (!intr_context ());
 	ASSERT (intr_get_level () == INTR_OFF);
 	thread_current ()->status = THREAD_BLOCKED;
+
 	schedule ();
 }
 
@@ -356,6 +370,9 @@ thread_get_recent_cpu (void) {
    blocks.  After that, the idle thread never appears in the
    ready list.  It is returned by next_thread_to_run() as a
    special case when the ready list is empty. */
+
+
+
 static void
 idle (void *idle_started_ UNUSED) {
 	struct semaphore *idle_started = idle_started_;
@@ -367,6 +384,14 @@ idle (void *idle_started_ UNUSED) {
 		/* Let someone else run. */
 		intr_disable ();
 		thread_block ();
+
+		// if(list_empty(&block_list)){ // block List가 비어있다면
+		// 		list_push_back(&block_list, &idle_thread);
+		// }else{ // 그렇지않다면
+		// list_insert_ordered (&block_list, &idle_thread, );
+		// }
+
+		
 
 		/* Re-enable interrupts and wait for the next one.
 

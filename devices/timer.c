@@ -96,7 +96,7 @@ timer_sleep (int64_t ticks) {
 
 	ASSERT (intr_get_level () == INTR_ON);
 	while (timer_elapsed (start) < ticks) {
-		thread_yield ();
+		// thread_yield ();
 	}
 		
 }
@@ -129,6 +129,7 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
+	printf("%lld\n  ",timer_ticks());
 	thread_tick ();
 }
 
