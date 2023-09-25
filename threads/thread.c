@@ -28,8 +28,6 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-static struct list wait_list;
-
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -98,6 +96,7 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
    finishes. */
 void
 thread_init (void) {
+	printf("thread_init()\n");
 	ASSERT (intr_get_level () == INTR_OFF);
 
 	/* Reload the temporal gdt for the kernel
@@ -112,13 +111,13 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
-	list_init(&wait_list); // change
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
+	printf("실행되었니? 누구 : %s\n", thread_current()->name);
 	initial_thread->tid = allocate_tid ();
 }
 
@@ -126,6 +125,7 @@ thread_init (void) {
    Also creates the idle thread. */
 void
 thread_start (void) {
+	printf("thread_start()\n");
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
@@ -138,39 +138,12 @@ thread_start (void) {
 	sema_down (&idle_started);
 }
 
-// void print_ready_list() {
-//   if (list_empty(&ready_list)) {
-//     // printf("empty list\n");
-//     return;
-//   }
-
-//   struct list_elem *tail = list_tail(&ready_list);
-//   struct list_elem *curr_list = list_front(&ready_list);
-//   struct thread *curr;
-
-//   printf("(ready-list) ");
-//   while (curr_list != tail) {
-//     curr = list_entry(curr_list, struct thread, elem);
-//     printf("%s ", curr->name);
-//     curr_list = list_next(curr_list);
-//   }
-//   printf("\n");
-// }
-
-/* Prints thread statistics. */
-void
-thread_print_stats (void) {
-	printf ("idle ticks : %lld , kernel ticks : %lld , user ticks : %lld \n",
-			idle_ticks, kernel_ticks, user_ticks);
-}
-
-/* 타이머 인터럽트 핸들러에 의해 각 타이머 틱마다 호출됩니다.
-따라서, 이 함수는 외부 인터럽트 컨텍스트에서 실행됩니다. */
+/* Called by the timer interrupt handler at each timer tick.
+   Thus, this function runs in an external interrupt context. */
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
-	// print_ready_list();
-	// printf("idle_thread : %s, thread_current : %s\n", idle_thread->name, t->name);
+
 	/* Update statistics. */
 	if (t == idle_thread)
 		idle_ticks++;
@@ -179,48 +152,39 @@ thread_tick (void) {
 		user_ticks++;
 #endif
 	else
-	// printf("from %s to %s\n", idle_thread->name, t->name);
 		kernel_ticks++;
 
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
-
-	thread_print_stats();
-
-	// struct list_elem* now;
-	// struct thread* now_t;
-
-	// while (!list_empty(&block_list)) {
-	// 	now = list_begin(&block_list);
-	// 	now_t = list_entry(now, struct thread, elem);
-
-	// 	if (now_t->endTick > tick){
-	// 		break;
-	// 	}
-	// 	list_pop_front(&block_list);
-	// 	print_sleep_list();
-	// 	thread_unblock(now_t);
-	// }
-	
 }
 
+/* Prints thread statistics. */
+void
+thread_print_stats (void) {
+	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
+			idle_ticks, kernel_ticks, user_ticks);
+}
 
+/* Creates a new kernel thread named NAME with the given initial
+   PRIORITY, which executes FUNCTION passing AUX as the argument,
+   and adds it to the ready queue.  Returns the thread identifier
+   for the new thread, or TID_ERROR if creation fails.
 
-/* 주어진 초기 PRIORITY로 NAME이라는 이름의 새로운 커널 스레드를 생성하며, 
-AUX를 인자로하여 FUNCTION을 실행하고, 그것을 준비 큐에 추가합니다. 
-생성된 새 스레드의 스레드 식별자를 반환하거나, 생성이 실패하면 TID_ERROR를 반환합니다.
+   If thread_start() has been called, then the new thread may be
+   scheduled before thread_create() returns.  It could even exit
+   before thread_create() returns.  Contrariwise, the original
+   thread may run for any amount of time before the new thread is
+   scheduled.  Use a semaphore or some other form of
+   synchronization if you need to ensure ordering.
 
-thread_start()가 호출되었다면, 새로운 스레드는 thread_create()가 반환하기 전에 
-스케줄링될 수 있습니다. 심지어 thread_create()가 반환하기 전에 종료될 수도 있습니다. 
-반대로, 원래 스레드는 새 스레드가 스케줄링되기 전에 얼마든지 실행될 수 있습니다. 
-순서를 보장하기 위해 세마포어나 다른 형태의 동기화를 사용해야 합니다.
-
-제공된 코드는 새 스레드의 `priority' 멤버를 PRIORITY로 설정하지만, 
-실제 우선 순위 스케줄링은 구현되지 않았습니다. 우선 순위 스케줄링은 문제 1-3의 목표입니다. */
+   The code provided sets the new thread's `priority' member to
+   PRIORITY, but no actual priority scheduling is implemented.
+   Priority scheduling is the goal of Problem 1-3. */
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
+	printf("thread_create() :%s \n", name);
 	struct thread *t;
 	tid_t tid;
 
@@ -234,7 +198,7 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
-	
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -258,22 +222,13 @@ thread_create (const char *name, int priority,
    This function must be called with interrupts turned off.  It
    is usually a better idea to use one of the synchronization
    primitives in synch.h. */
-// void
-// thread_block (void) { 
-// 	ASSERT (!intr_context ());
-// 	ASSERT (intr_get_level () == INTR_OFF);
-// 	thread_current ()->status = THREAD_BLOCKED;
-// 	schedule ();
-// }
-
 void
 thread_block (void) { 
+	
 	ASSERT (!intr_context ());
 	ASSERT (intr_get_level () == INTR_OFF);
 	thread_current ()->status = THREAD_BLOCKED;
-
 	schedule ();
-	
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
@@ -292,19 +247,12 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
-	// list_insert_ordered(&ready_list, &t->elem, compare, NULL);
+	list_insert_ordered(&ready_list, &t->elem, compare, NULL);
+	
 	// print_ready_list();
 	t->status = THREAD_READY;
-	intr_set_level (old_level);
 
-	// To do: 문맥교환
-	// struct list_elem* first = list_begin(&ready_list);
-	// struct thread* first_t = list_entry(first, struct thread, elem);
-	// if (first_t->priority > thread_current()->priority) {
-	// 	list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
-	// 	do_schedule(THREAD_READY);
-	// }
+	intr_set_level (old_level);
 }
 
 bool compare (const struct list_elem *a, const struct list_elem *b, void *aux) {
@@ -379,9 +327,13 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
-	do_schedule (THREAD_READY);
+	if (curr != idle_thread){
+		struct thread* next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
+		if(curr->priority < next_thread->priority){
+			list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
+			do_schedule (THREAD_READY);
+		}
+	}
 	intr_set_level (old_level);
 }
 
@@ -433,9 +385,6 @@ thread_get_recent_cpu (void) {
    blocks.  After that, the idle thread never appears in the
    ready list.  It is returned by next_thread_to_run() as a
    special case when the ready list is empty. */
-
-
-
 static void
 idle (void *idle_started_ UNUSED) {
 	struct semaphore *idle_started = idle_started_;
@@ -447,14 +396,6 @@ idle (void *idle_started_ UNUSED) {
 		/* Let someone else run. */
 		intr_disable ();
 		thread_block ();
-
-		// if(list_empty(&block_list)){ // block List가 비어있다면
-		// 		list_push_back(&block_list, &idle_thread);
-		// }else{ // 그렇지않다면
-		// list_insert_ordered (&block_list, &idle_thread, );
-		// }
-
-		
 
 		/* Re-enable interrupts and wait for the next one.
 
@@ -615,6 +556,7 @@ thread_launch (struct thread *th) {
  * It's not safe to call printf() in the schedule(). */
 static void
 do_schedule(int status) {
+	printf("do_schedule()\n");
 	ASSERT (intr_get_level () == INTR_OFF);
 	ASSERT (thread_current()->status == THREAD_RUNNING);
 	while (!list_empty (&destruction_req)) {
@@ -676,64 +618,3 @@ allocate_tid (void) {
 
 	return tid;
 }
-
-bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux) {
-    // 여기에서 a와 b를 적절한 구조체 타입으로 형 변환하고,
-    // 그 값을 기반으로 비교하는 로직을 구현합니다.
-    // 예: a와 b가 MyStruct 타입의 포인터에 해당하는 list_elem라고 가정하면
-    struct thread *a_dot = list_entry(a, struct thread, elem);
-    struct thread *b_dot = list_entry(b, struct thread, elem);
-    
-
-    // 여기서 struct_a와 struct_b의 멤버나 값을 사용하여 비교를 수행합니다.
-    // 예를 들면:
-    return  a_dot->priority < b_dot->priority;
-}
-
-void wakeUp(int64_t ticks){
-
-	while(!list_empty(&wait_list)){
-		struct thread* thread = list_entry(list_front(&wait_list), struct thread, elem);
-
-		if(thread->endTick > ticks){
-			break;
-		}else{
-			struct thread* enterThread = list_entry(list_pop_front(&wait_list), struct thread, elem);
-			thread_unblock(enterThread);
-		}
-	}
-}
-
-void insert_blockList(int64_t endtick){
-	struct thread *curr = thread_current ();
-	enum intr_level old_level; // 현재 인터럽트 레벨 저장
-
-	curr->endTick = endtick;
-	old_level = intr_disable();
-	if(curr != idle_thread){
-		
-		list_insert_ordered(&wait_list, &(curr->elem), my_less_func, NULL);
-		do_schedule(THREAD_BLOCKED);
-	}
-	intr_set_level(old_level);
-	
-}
-
-// void print_ready_list() {
-//   if (list_empty(&ready_list)) {
-//     // printf("empty list\n");
-//     return;
-//   }
-
-//   struct list_elem *tail = list_tail(&ready_list);
-//   struct list_elem *curr_list = list_front(&ready_list);
-//   struct thread *curr;
-
-//   printf("(ready-list) ");
-//   while (curr_list != tail) {
-//     curr = list_entry(curr_list, struct thread, elem);
-//     printf("%s ", curr->name);
-//     curr_list = list_next(curr_list);
-//   }
-//   printf("\n");
-// }
