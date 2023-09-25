@@ -32,6 +32,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -66,23 +68,8 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
-
-		struct thread *curr = thread_current();
-		struct list_elem *prev = list_prev(list_tail(&sema->waiters));
-		
-		
-		while(list_head(&sema->waiters) != prev){
-			struct thread* prev_t = list_entry(prev, struct thread, elem);
-
-			if(curr->priority < prev_t->priority){
-				break;
-			}
-			prev_t->priority = curr->priority;
-			prev = list_prev(prev);
-		}
-	
-
+		// list_push_back (&sema->waiters, &thread_current ()->elem);
+		list_insert_ordered(&sema->waiters, &thread_current ()->elem, my_less_func, NULL);
 		thread_block ();
 	}
 	sema->value--;
@@ -129,6 +116,7 @@ sema_up (struct semaphore *sema) {
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
 	sema->value++;
+	
 	intr_set_level (old_level);
 }
 
@@ -206,10 +194,19 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!lock_held_by_current_thread (lock));
 
 	if(lock->holder != NULL){
-		int tmp = lock->holder->priority;
-		int tmp2 = thread_current()->priority;
-		if(tmp <= tmp2) 
-			lock->holder->priority = tmp2;
+		int holder_priority = lock->holder->priority;
+		int now_priority = thread_current()->priority;
+		if(holder_priority <= now_priority){ 
+			lock->holder->priority = now_priority;
+			struct history_thread *history;
+			history->priority = now_priority;
+			
+			list_insert_order(&lock->holder->historyList, , &history->elem , my_less_func, NULL);
+
+			// &lock->holder->historyList
+		}
+
+	
 	}
 
 
@@ -346,4 +343,12 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 
 	while (!list_empty (&cond->waiters))
 		cond_signal (cond, lock);
+}
+
+bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux) {
+
+    struct thread *a_dot = list_entry(a, struct thread, elem);
+    struct thread *b_dot = list_entry(b, struct thread, elem);
+
+    return  a_dot->priority > b_dot->priority;
 }
