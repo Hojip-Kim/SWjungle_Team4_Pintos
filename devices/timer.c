@@ -91,24 +91,14 @@ timer_elapsed (int64_t then) {
 }
 
 /* Suspends execution for approximately TICKS timer ticks. */
-// semaphore, lock, barrier등 을 통해 멈춰야 하는데??
-// 쓰레드가 돌아가고 있는지 아닌지 어떻게 알지??
-// 
-
 void
 timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks) {
-		thread_yield ();
-<<<<<<< HEAD
-		printf("\n####### ticks #############%lld#####################\n",ticks);
-		printf("\n####### start #############%lld#####################\n",start);
-	printf("\n timer_sleep 끝\n");
-=======
-	}
-		
->>>>>>> eae6d599cde34737739a94dd71c663532e8dc83f
+	// while (timer_elapsed (start) < ticks) {
+	// 	thread_yield ();
+	// }
+	thread_sleep(start+ticks);		
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -134,13 +124,15 @@ void
 timer_print_stats (void) {
 	printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
-	thread_tick ();
+	wakeup(timer_ticks());
 }
+
+
 
 /* Returns true if LOOPS iterations waits for more than one timer
    tick, otherwise false. */

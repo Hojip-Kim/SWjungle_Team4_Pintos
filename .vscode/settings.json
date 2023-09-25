@@ -1,0 +1,30 @@
+{
+    "files.associations": {
+        "*.inc": "c",
+        "array": "c",
+        "atomic": "c",
+        "bit": "c",
+        "*.tcc": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "algorithm": "c",
+        "functional": "c",
+        "memory": "c",
+        "memory_resource": "c",
+        "random": "c",
+        "system_error": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "cmath": "c",
+        "limits": "c",
+        "numeric": "c",
+        "ostream": "c",
+        "stdexcept": "c",
+        "streambuf": "c",
+        "string_view": "c",
+        "utility": "c",
+        "typeinfo": "c",
+        "interrupt.h": "c"
+    }
+}

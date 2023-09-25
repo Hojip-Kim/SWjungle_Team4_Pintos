@@ -28,6 +28,9 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* sleep list */
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -62,7 +65,7 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
-
+void wakeup(int64_t ticks);
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -109,6 +112,7 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+	list_init (&sleep_list);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -296,18 +300,66 @@ thread_exit (void) {
    may be scheduled again immediately at the scheduler's whim. */
 void
 thread_yield (void) {
-	printf("\n####################I'm in thread_yield######################\n");
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
+	ASSERT (!intr_context ());//외부 interrupt가 없다.
 
+	old_level = intr_disable ();//*1
+	if (curr != idle_thread)//현재 쓰레드는 레디투 런 상태에 있다가 실행되는 쓰레드다.
+		list_push_back (&ready_list, &curr->elem);	
+	do_schedule (THREAD_READY);
+	intr_set_level (old_level);//*1 정체가 뭐야??
+}
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+/* Returns true if sleep A is less than sleep B, false
+   otherwise. */
+static bool
+sleep_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED) 
+{
+  const struct thread *a = list_entry (a_, struct thread, elem);
+  const struct thread *b = list_entry (b_, struct thread, elem);
+  
+  return a->sleep_ticks < b->sleep_ticks;
+}
+
+/* thread_sleep */
+void
+thread_sleep(int64_t ticks){
+	struct thread *curr = thread_current();
+	curr->sleep_ticks = ticks;
+	enum intr_level old_level;
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
-	do_schedule (THREAD_READY);
+		list_insert_ordered (&sleep_list, &curr->elem, sleep_less, NULL);
+	do_schedule (THREAD_BLOCKED);
+	//thread_block();
 	intr_set_level (old_level);
 }
+
+void
+wakeup(int64_t ticks){
+	while (1){
+		if (list_empty(&sleep_list))
+			break;
+		struct list_elem * e = list_front(&sleep_list);
+
+		if (list_entry(e ,struct thread, elem)->sleep_ticks > ticks)
+			break;
+
+		struct thread * th = list_entry(list_pop_front(&sleep_list), struct thread, elem);
+		thread_unblock(th);
+	}
+
+}
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
