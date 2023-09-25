@@ -60,13 +60,29 @@ sema_init (struct semaphore *sema, unsigned value) {
 void
 sema_down (struct semaphore *sema) {
 	enum intr_level old_level;
-
+	// struct lock *lok = list_entry(sema, struct lock, semaphore);
 	ASSERT (sema != NULL);
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
 		list_push_back (&sema->waiters, &thread_current ()->elem);
+
+		struct thread *curr = thread_current();
+		struct list_elem *prev = list_prev(list_tail(&sema->waiters));
+		
+		
+		while(list_head(&sema->waiters) != prev){
+			struct thread* prev_t = list_entry(prev, struct thread, elem);
+
+			if(curr->priority < prev_t->priority){
+				break;
+			}
+			prev_t->priority = curr->priority;
+			prev = list_prev(prev);
+		}
+	
+
 		thread_block ();
 	}
 	sema->value--;
@@ -189,7 +205,16 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
+	if(lock->holder != NULL){
+		int tmp = lock->holder->priority;
+		int tmp2 = thread_current()->priority;
+		if(tmp <= tmp2) 
+			lock->holder->priority = tmp2;
+	}
+
+
 	sema_down (&lock->semaphore);
+	
 	lock->holder = thread_current ();
 }
 

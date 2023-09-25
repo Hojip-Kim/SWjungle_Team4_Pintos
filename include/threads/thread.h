@@ -93,6 +93,8 @@ struct thread {
 	int priority;                       /* Priority. */
 	int64_t endTick;
 
+	
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 	

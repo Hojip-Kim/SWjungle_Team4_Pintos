@@ -96,7 +96,7 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
    finishes. */
 void
 thread_init (void) {
-	printf("thread_init()\n");
+	// printf("thread_init()\n");
 	ASSERT (intr_get_level () == INTR_OFF);
 
 	/* Reload the temporal gdt for the kernel
@@ -117,7 +117,7 @@ thread_init (void) {
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
-	printf("실행되었니? 누구 : %s\n", thread_current()->name);
+	// printf("실행되었니? 누구 : %s\n", thread_current()->name);
 	initial_thread->tid = allocate_tid ();
 }
 
@@ -125,7 +125,7 @@ thread_init (void) {
    Also creates the idle thread. */
 void
 thread_start (void) {
-	printf("thread_start()\n");
+	// printf("thread_start()\n");
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
@@ -143,7 +143,7 @@ thread_start (void) {
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
-
+	// printf("지금 실행되는 스레드 : %s , 이녀석의 priority는 : %d \n", t->name, t->priority);
 	/* Update statistics. */
 	if (t == idle_thread)
 		idle_ticks++;
@@ -153,6 +153,7 @@ thread_tick (void) {
 #endif
 	else
 		kernel_ticks++;
+		
 
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
@@ -184,7 +185,6 @@ thread_print_stats (void) {
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
-	printf("thread_create() :%s \n", name);
 	struct thread *t;
 	tid_t tid;
 
@@ -209,9 +209,11 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
-
+	// printf("thread 이제 들어갈거야 unblock :%s \n", name);
 	/* Add to run queue. */
+
 	thread_unblock (t);
+	thread_yield();
 
 	return tid;
 }
@@ -248,7 +250,6 @@ thread_unblock (struct thread *t) {
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 	list_insert_ordered(&ready_list, &t->elem, compare, NULL);
-	
 	// print_ready_list();
 	t->status = THREAD_READY;
 
@@ -265,8 +266,9 @@ void print_ready_list() {
 	struct list_elem *e;
 	printf("==리스트출력시작==\n");
 	for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
-		printf("스레드 이름: %s\n", list_entry(e, struct thread, elem)->name);
+		printf(" 스레드 이름: %s /", list_entry(e, struct thread, elem)->name);
 	}
+	printf("\n");
 }	
 
 
@@ -331,6 +333,8 @@ thread_yield (void) {
 		struct thread* next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
 		if(curr->priority < next_thread->priority){
 			list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
+			// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
+			// print_ready_list();
 			do_schedule (THREAD_READY);
 		}
 	}
@@ -341,6 +345,7 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -556,7 +561,10 @@ thread_launch (struct thread *th) {
  * It's not safe to call printf() in the schedule(). */
 static void
 do_schedule(int status) {
-	printf("do_schedule()\n");
+	
+	// printf("스케쥴 하기전에 list 출력\n");
+	// print_ready_list();
+	
 	ASSERT (intr_get_level () == INTR_OFF);
 	ASSERT (thread_current()->status == THREAD_RUNNING);
 	while (!list_empty (&destruction_req)) {
@@ -564,7 +572,10 @@ do_schedule(int status) {
 			list_entry (list_pop_front (&destruction_req), struct thread, elem);
 		palloc_free_page(victim);
 	}
+	
+
 	thread_current ()->status = status;
+
 	schedule ();
 }
 

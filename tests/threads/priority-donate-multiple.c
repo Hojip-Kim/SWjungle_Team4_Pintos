@@ -32,23 +32,23 @@ test_priority_donate_multiple (void)
   lock_init (&a);
   lock_init (&b);
 
-  lock_acquire (&a);
-  lock_acquire (&b);
+  lock_acquire (&a); // a holder = main 
+  lock_acquire (&b); // b holder = main
 
-  thread_create ("a", PRI_DEFAULT + 1, a_thread_func, &a);
-  msg ("Main thread should have priority %d.  Actual priority: %d.",
+  thread_create ("a", PRI_DEFAULT + 1, a_thread_func, &a); // 32
+  msg ("Main thread should have priority %d.  Actual priority: %d.", 
        PRI_DEFAULT + 1, thread_get_priority ());
 
   thread_create ("b", PRI_DEFAULT + 2, b_thread_func, &b);
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 2, thread_get_priority ());
 
-  lock_release (&b);
+  lock_release (&b); // b holder = b, main = 32
   msg ("Thread b should have just finished.");
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 1, thread_get_priority ());
 
-  lock_release (&a);
+  lock_release (&a); // a holder = a, main = 31
   msg ("Thread a should have just finished.");
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT, thread_get_priority ());
@@ -59,7 +59,7 @@ a_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 
-  lock_acquire (lock);
+  lock_acquire (lock); // main priority = 32 // a의 waiters상태는 지금 main => thread a
   msg ("Thread a acquired lock a.");
   lock_release (lock);
   msg ("Thread a finished.");
@@ -70,7 +70,7 @@ b_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 
-  lock_acquire (lock);
+  lock_acquire (lock); // main priority = 33
   msg ("Thread b acquired lock b.");
   lock_release (lock);
   msg ("Thread b finished.");
