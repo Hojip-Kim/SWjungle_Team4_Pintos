@@ -64,9 +64,8 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
-void insert_blockList(int64_t endtick);
-void wakeUp(int64_t ticks);
 
+bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -293,12 +292,35 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-
-	list_insert_ordered(&ready_list, &t->elem, my_less_func,NULL) // priorty
-
+	list_push_back (&ready_list, &t->elem);
+	// list_insert_ordered(&ready_list, &t->elem, compare, NULL);
+	// print_ready_list();
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
+
+	// To do: 문맥교환
+	// struct list_elem* first = list_begin(&ready_list);
+	// struct thread* first_t = list_entry(first, struct thread, elem);
+	// if (first_t->priority > thread_current()->priority) {
+	// 	list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
+	// 	do_schedule(THREAD_READY);
+	// }
 }
+
+bool compare (const struct list_elem *a, const struct list_elem *b, void *aux) {
+	struct thread* t_a = list_entry(a, struct thread, elem);
+	struct thread* t_b = list_entry(b, struct thread, elem);
+	return t_a -> priority > t_b->priority;
+}
+
+void print_ready_list() {
+	struct list_elem *e;
+	printf("==리스트출력시작==\n");
+	for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
+		printf("스레드 이름: %s\n", list_entry(e, struct thread, elem)->name);
+	}
+}	
+
 
 /* Returns the name of the running thread. */
 const char *
