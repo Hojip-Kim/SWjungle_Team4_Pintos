@@ -33,6 +33,7 @@
 #include "threads/thread.h"
 
 bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool my_less_func2(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -69,7 +70,7 @@ sema_down (struct semaphore *sema) {
 	old_level = intr_disable ();
 	while (sema->value == 0) {
 		// list_push_back (&sema->waiters, &thread_current ()->elem);
-		list_insert_ordered(&sema->waiters, &thread_current ()->elem, my_less_func, NULL);
+		list_insert_ordered(&sema->waiters, &thread_current ()->elem, my_less_func2, NULL);
 		thread_block ();
 	}
 	sema->value--;
@@ -112,9 +113,9 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-	if (!list_empty (&sema->waiters))
-		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-					struct thread, elem));
+		
+	thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+
 	sema->value++;
 	
 	intr_set_level (old_level);
@@ -194,14 +195,13 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!lock_held_by_current_thread (lock));
 
 	if(lock->holder != NULL){
-		int holder_priority = lock->holder->priority;
-		int now_priority = thread_current()->priority;
+		int holder_priority = lock->holder->priority; 
+		int now_priority = thread_current()->priority; 
 		if(holder_priority <= now_priority){ 
 			lock->holder->priority = now_priority;
-			struct history_thread *history;
-			history->priority = now_priority;
-			
-			list_insert_order(&lock->holder->historyList, , &history->elem , my_less_func, NULL);
+
+
+			// list_insert_ordered(&lock->holder->historyList, &thread_current()->elem2 , my_less_func, NULL);
 
 			// &lock->holder->historyList
 		}
@@ -264,6 +264,9 @@ struct semaphore_elem {
 	struct list_elem elem;              /* List element. */
 	struct semaphore semaphore;         /* This semaphore. */
 };
+
+
+
 
 /* Initializes condition variable COND.  A condition variable
    allows one piece of code to signal a condition and cooperating
@@ -346,6 +349,14 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 }
 
 bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux) {
+
+    struct thread *a_dot = list_entry(a, struct thread, elem);
+    struct thread *b_dot = list_entry(b, struct thread, elem);
+
+    return  a_dot->priority < b_dot->priority;
+}
+
+bool my_less_func2(const struct list_elem *a, const struct list_elem *b, void *aux) {
 
     struct thread *a_dot = list_entry(a, struct thread, elem);
     struct thread *b_dot = list_entry(b, struct thread, elem);

@@ -198,6 +198,7 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	
+	
 	tid = t->tid = allocate_tid ();
 
 	/* Call the kernel_thread if it scheduled.
@@ -332,7 +333,7 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	if (curr != idle_thread){
 		struct thread* next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
-		if(curr->priority < next_thread->priority){
+		if(!list_empty(&ready_list) && curr->priority < next_thread->priority){
 			// thread_current()->priority = 31;
 			list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
 			// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
@@ -442,8 +443,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	memset (t, 0, sizeof *t);
 	t->status = THREAD_BLOCKED;
 	strlcpy (t->name, name, sizeof t->name);
-	list_init(&t->historyList);
-	list_push_front(&t->historyList, t->priority);
+	// list_init(&t->historyList);
+	// list_push_front(&t->historyList, t->priority);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
