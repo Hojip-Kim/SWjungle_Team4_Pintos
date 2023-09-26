@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "*html": "html",
-        "thread.h": "c"
+        "thread.h": "c",
+        "debug.h": "c",
+        "list.h": "c"
     }
 }

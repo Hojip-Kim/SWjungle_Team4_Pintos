@@ -93,13 +93,16 @@ struct thread {
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
 	int64_t endTick;
+	int priority_origin;
+	
 	// struct list historyList;
 	// struct list_elem elem2;
 
 	
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
-	
+	struct list own_list;
+	struct list_elem own_elem;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

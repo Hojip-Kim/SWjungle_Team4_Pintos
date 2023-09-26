@@ -113,10 +113,21 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
+	struct thread* now =NULL;
+	if(!list_empty(&sema->waiters)){
+		struct list_elem * max_elem = list_max(&sema->waiters, my_less_func, NULL);
+		now = list_entry(max_elem, struct thread, elem);
+		list_remove(max_elem);
+		thread_current()->priority = thread_current()->priority_origin;
 		
-	thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+
+		
+	}
 
 	sema->value++;
+
+	if(now!=NULL)
+		thread_unblock (now);
 	
 	intr_set_level (old_level);
 }
@@ -194,19 +205,17 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	if(lock->holder != NULL){
+	if(lock->holder != NULL){ // 락을 보유하고있는 홀더가 있다면
 		int holder_priority = lock->holder->priority; 
 		int now_priority = thread_current()->priority; 
 		if(holder_priority <= now_priority){ 
-			lock->holder->priority = now_priority;
+			lock->holder->priority = now_priority; // 먼저 빼줘야하
 
 
 			// list_insert_ordered(&lock->holder->historyList, &thread_current()->elem2 , my_less_func, NULL);
 
 			// &lock->holder->historyList
 		}
-
-	
 	}
 
 

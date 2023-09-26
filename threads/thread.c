@@ -199,7 +199,7 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	
 	
-	tid = t->tid = allocate_tid ();
+	tid = t->tid = allocate_tid (); 
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
@@ -215,7 +215,6 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 
 	thread_unblock (t);
-	thread_yield();
 
 	return tid;
 }
@@ -325,6 +324,8 @@ thread_exit (void) {
    may be scheduled again immediately at the scheduler's whim. */
 void
 thread_yield (void) {
+
+
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
@@ -333,12 +334,13 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	if (curr != idle_thread){
 		struct thread* next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
-		if(!list_empty(&ready_list) && curr->priority < next_thread->priority){
+		if(curr->priority < next_thread->priority){
 			// thread_current()->priority = 31;
 			list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
+				msg("%s",thread_current()->name);
 			// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
 			// print_ready_list();
-			do_schedule (THREAD_READY);
+			do_schedule (THREAD_READY); 
 		}
 	}
 	intr_set_level (old_level);
@@ -448,6 +450,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+	t->priority_origin = priority;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -588,6 +591,7 @@ static void
 schedule (void) {
 	struct thread *curr = running_thread ();
 	struct thread *next = next_thread_to_run ();
+	// msg("%s       %s",curr->name,next->name);
 
 	ASSERT (intr_get_level () == INTR_OFF);
 	ASSERT (curr->status != THREAD_RUNNING);
@@ -597,6 +601,8 @@ schedule (void) {
 
 	/* Start new time slice. */
 	thread_ticks = 0;
+
+
 
 #ifdef USERPROG
 	/* Activate the new address space. */
@@ -618,6 +624,7 @@ schedule (void) {
 
 		/* Before switching the thread, we first save the information
 		 * of current running. */
+
 		thread_launch (next);
 	}
 }
