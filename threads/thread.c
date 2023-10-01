@@ -94,6 +94,9 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
    It is not safe to call thread_current() until this function
    finishes. */
+
+
+   
 void
 thread_init (void) {
 	// printf("thread_init()\n");
@@ -197,9 +200,7 @@ thread_create (const char *name, int priority,
 
 	/* Initialize thread. */
 	init_thread (t, name, priority);
-	
-	
-	tid = t->tid = allocate_tid (); 
+	tid = t->tid = allocate_tid ();
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
@@ -215,7 +216,7 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 
 	thread_unblock (t);
-
+	thread_yield();
 	return tid;
 }
 
@@ -227,7 +228,6 @@ thread_create (const char *name, int priority,
    primitives in synch.h. */
 void
 thread_block (void) { 
-	
 	ASSERT (!intr_context ());
 	ASSERT (intr_get_level () == INTR_OFF);
 	thread_current ()->status = THREAD_BLOCKED;
@@ -251,9 +251,11 @@ thread_unblock (struct thread *t) {
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 	list_insert_ordered(&ready_list, &t->elem, compare, NULL);
+	// printf("thread_unblock() : %s\n", t->name);
 	// print_ready_list();
 	t->status = THREAD_READY;
-	thread_yield();
+	// thread_yield();
+
 	intr_set_level (old_level);
 }
 
@@ -324,8 +326,6 @@ thread_exit (void) {
    may be scheduled again immediately at the scheduler's whim. */
 void
 thread_yield (void) {
-
-
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
@@ -333,15 +333,10 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread){
-		struct thread* next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
-		if(curr->priority < next_thread->priority){
-			// thread_current()->priority = 31;
-			list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
-				msg("%s",thread_current()->name);
-			// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
-			// print_ready_list();
-			do_schedule (THREAD_READY); 
-		}
+		list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
+		do_schedule (THREAD_READY);
+		// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
+		// print_ready_list();	
 	}
 	intr_set_level (old_level);
 }
@@ -349,7 +344,31 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+
+	thread_current()->priority = new_priority;
+	thread_current()->priority_origin = new_priority;
+
+	thread_current()->priority = thread_current()->priority_origin;
+
+	if (!list_empty(&thread_current()->donations))
+	{
+		struct thread *front_thread = list_entry(list_begin(&thread_current()->donations),
+												 struct thread,
+												 donation_elem);
+
+		if (thread_current()->priority < front_thread->priority)
+		{
+			thread_current()->priority = front_thread->priority;
+		}
+	}
+
+	// // 현재스레드의 donations 리스트 null 체크하자
+	// if(list_empty(&thread_current()->donations)) {
+	// 	thread_current ()-> priority = new_priority;
+	// } else {
+	// 	thread_current ()-> priority_origin = new_priority;
+	// }
+	
 	thread_yield();
 }
 
@@ -445,12 +464,12 @@ init_thread (struct thread *t, const char *name, int priority) {
 	memset (t, 0, sizeof *t);
 	t->status = THREAD_BLOCKED;
 	strlcpy (t->name, name, sizeof t->name);
-	// list_init(&t->historyList);
-	// list_push_front(&t->historyList, t->priority);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
-	t->magic = THREAD_MAGIC;
 	t->priority_origin = priority;
+	list_init(&t->donations);
+	
+	t->magic = THREAD_MAGIC;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -591,7 +610,6 @@ static void
 schedule (void) {
 	struct thread *curr = running_thread ();
 	struct thread *next = next_thread_to_run ();
-	// msg("%s       %s",curr->name,next->name);
 
 	ASSERT (intr_get_level () == INTR_OFF);
 	ASSERT (curr->status != THREAD_RUNNING);
@@ -601,8 +619,6 @@ schedule (void) {
 
 	/* Start new time slice. */
 	thread_ticks = 0;
-
-
 
 #ifdef USERPROG
 	/* Activate the new address space. */
@@ -624,7 +640,6 @@ schedule (void) {
 
 		/* Before switching the thread, we first save the information
 		 * of current running. */
-
 		thread_launch (next);
 	}
 }
