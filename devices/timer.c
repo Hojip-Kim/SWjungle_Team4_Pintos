@@ -130,6 +130,7 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	wakeup(timer_ticks());
+	thread_tick();
 }
 
 
