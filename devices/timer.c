@@ -97,6 +97,7 @@ timer_sleep (int64_t ticks) {
 	//ticks + timer_ticks()를 더해서 인자에 넣어주기.
 	ASSERT (intr_get_level () == INTR_ON);
 
+	insert_blockList(ticks+start);
 
 	// thread_yield ();
 		
@@ -132,6 +133,7 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	// printf("%lld\n  ",timer_ticks());
 	thread_tick ();
+	wakeUp(ticks);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

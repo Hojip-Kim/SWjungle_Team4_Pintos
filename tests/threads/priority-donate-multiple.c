@@ -32,28 +32,28 @@ test_priority_donate_multiple (void)
   lock_init (&a);
   lock_init (&b);
 
-  lock_acquire (&a); // a holder = main 
-  lock_acquire (&b); // b holder = main
+  lock_acquire (&a);
+  lock_acquire (&b);
 
   thread_create ("a", PRI_DEFAULT + 1, a_thread_func, &a); // 32
   msg ("Main thread should have priority %d.  Actual priority: %d.", 
        PRI_DEFAULT + 1, thread_get_priority ());
-
+//a => main => "a" , main이 32로 됨. (main이 current)
   thread_create ("b", PRI_DEFAULT + 2, b_thread_func, &b);
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 2, thread_get_priority ());
-
+//b => main => "b" main이 33으로됨. (main이 current)
   lock_release (&b); // b holder = b, main = 32
   msg ("Thread b should have just finished.");
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 1, thread_get_priority ());
-
+// b가 실행되고, main은 다시 32가 되어야함.
   lock_release (&a); // a holder = a, main = 31
   msg ("Thread a should have just finished.");
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT, thread_get_priority ());
 }
-
+// a가 실행되고, main은 다시 31이 되어야함.
 static void
 a_thread_func (void *lock_) 
 {
