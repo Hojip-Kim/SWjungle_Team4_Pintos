@@ -49,6 +49,11 @@ sema_init (struct semaphore *sema, unsigned value) {
 	list_init (&sema->waiters);
 }
 
+void
+priority_inversion(struct semaphore *sema, struct thread * curr_t){
+	lock_entry(sema, struct lock, semaphore)->holder->priority = curr_t->priority;
+}
+
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -66,7 +71,11 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
+		// list_push_back (&sema->waiters, &thread_current ()->elem);
+		struct thread * curr_t = thread_current ();
+		if (sema->son_of_lock == 'Y')
+			priority_inversion(sema,curr_t);
+		list_insert_ordered(&sema->waiters,&thread_current ()->elem,priority_high,NULL);
 		thread_block ();
 	}
 	sema->value--;
@@ -171,6 +180,7 @@ lock_init (struct lock *lock) {
 	ASSERT (lock != NULL);
 
 	lock->holder = NULL;
+	(&lock->semaphore)->son_of_lock = 'Y';
 	sema_init (&lock->semaphore, 1);
 }
 

@@ -8,6 +8,8 @@
 struct semaphore {
 	unsigned value;             /* Current value. */
 	struct list waiters;        /* List of waiting threads. */
+	char son_of_lock;
+
 };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -44,5 +46,10 @@ void cond_broadcast (struct condition *, struct lock *);
  * optimization barrier.  See "Optimization Barriers" in the
  * reference guide for more information.*/
 #define barrier() asm volatile ("" : : : "memory")
+
+
+#define lock_entry(SEMAPHORE, STRUCT, MEMBER)           \
+	((STRUCT *) ((uint8_t *) (SEMAPHORE)     \
+		- offsetof (STRUCT, MEMBER)))
 
 #endif /* threads/synch.h */

@@ -66,7 +66,7 @@ static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 void wakeup(int64_t ticks);
-static bool
+bool
 priority_high (const struct list_elem *a_, const struct list_elem *b_,
             void *aux UNUSED); 
 /* Returns true if T appears to point to a valid thread. */
@@ -240,7 +240,7 @@ thread_block (void) {
 }
 
 // @@
-static bool
+bool
 priority_high (const struct list_elem *a_, const struct list_elem *b_,
             void *aux UNUSED) 
 {
@@ -488,6 +488,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
+	
 	t->magic = THREAD_MAGIC;
 }
 
