@@ -152,5 +152,5 @@ void wakeUp(int64_t ticks);
 
 void do_iret (struct intr_frame *tf);
 bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
-
+void test_max_priority(void);
 #endif /* threads/thread.h */

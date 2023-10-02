@@ -69,7 +69,7 @@ void wakeUp(int64_t ticks);
 bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
-
+void test_max_priority(void);
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -341,8 +341,6 @@ thread_yield (void) {
 	if (curr != idle_thread){
 		list_insert_ordered(&ready_list, &thread_current()->elem, compare, NULL);
 		do_schedule (THREAD_READY);
-		// printf("\ndo_schedule() 시작, 스케쥴해쥴 해주기전에 readyList에는?\n");
-		// print_ready_list();	
 	}
 	intr_set_level (old_level);
 }
@@ -351,14 +349,16 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 
-	thread_current()->priority = new_priority;
+	
 	thread_current()->priority_origin = new_priority;
 
 	thread_current()->priority = thread_current()->priority_origin;
 
+	struct thread *front_thread = NULL;
+
 	if (!list_empty(&thread_current()->donations))
 	{
-		struct thread *front_thread = list_entry(list_begin(&thread_current()->donations),
+		front_thread = list_entry(list_begin(&thread_current()->donations),
 												 struct thread,
 												 donation_elem);
 
@@ -374,7 +374,7 @@ thread_set_priority (int new_priority) {
 	// } else {
 	// 	thread_current ()-> priority_origin = new_priority;
 	// }
-	
+	// if(front_thread != NULL && thread_current()->priority < front_thread->priority)
 	thread_yield();
 }
 
@@ -473,6 +473,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->priority_origin = priority;
+	t->wait_on_lock = NULL;
 	list_init(&t->donations);
 	
 	t->magic = THREAD_MAGIC;
@@ -646,7 +647,8 @@ schedule (void) {
 
 		/* Before switching the thread, we first save the information
 		 * of current running. */
-		thread_launch (next);
+		
+			thread_launch (next);
 	}
 }
 
@@ -704,3 +706,17 @@ void insert_blockList(int64_t endtick){
 	intr_set_level(old_level);
 	
 }
+
+// void test_max_priority(void)
+// {
+// 	/* ready_list에서 우선순위가 가장 높은 스레드와
+// 	   현재 스레드의 우선순위를 비교하여 스케줄링 */
+// 	if (!list_empty(&ready_list))
+// 	{
+// 		struct thread *top_pri = list_begin(&ready_list);
+// 		if (thread_current()->priority <= top_pri)
+// 		{
+// 			thread_yield();
+// 		}
+// 	}
+// }
