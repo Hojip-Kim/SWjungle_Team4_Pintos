@@ -148,9 +148,11 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 void insert_blockList(int64_t nowTime);
-void wakeUp(int64_t ticks);
+void wake_up(int64_t ticks);
 
 void do_iret (struct intr_frame *tf);
 bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_tick (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_reverse (const struct list_elem *a, const struct list_elem *b, void *aux);
 void test_max_priority(void);
 #endif /* threads/thread.h */
