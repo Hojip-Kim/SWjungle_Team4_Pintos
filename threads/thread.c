@@ -66,9 +66,7 @@ static void schedule(void);
 static tid_t allocate_tid(void);
 void insert_blockList(int64_t endtick);
 void wake_up(int64_t ticks);
-// bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
 
-// bool compare(const struct list_elem *a, const struct list_elem *b, void *aux);
 void test_max_priority(void);
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -673,15 +671,6 @@ allocate_tid(void)
 	lock_release(&tid_lock);
 
 	return tid;
-}
-
-bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
-{
-
-	struct thread *a_dot = list_entry(a, struct thread, elem);
-	struct thread *b_dot = list_entry(b, struct thread, elem);
-
-	return a_dot->endTick < b_dot->endTick;
 }
 
 void wake_up(int64_t ticks)
