@@ -26,7 +26,7 @@ test_priority_condvar (void)
 
   thread_set_priority (PRI_MIN);
   for (i = 0; i < 10; i++) 
-    {
+  {
       int priority = PRI_DEFAULT - (i + 7) % 10 - 1;
       char name[16];
       snprintf (name, sizeof name, "priority %d", priority);
