@@ -66,7 +66,6 @@ static void schedule(void);
 static tid_t allocate_tid(void);
 void insert_blockList(int64_t endtick);
 void wake_up(int64_t ticks);
-// bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 // bool compare(const struct list_elem *a, const struct list_elem *b, void *aux);
 void test_max_priority(void);
@@ -556,7 +555,7 @@ thread_launch(struct thread *th)
 		"push %%rbx\n"
 		"push %%rcx\n"
 		/* Fetch input once */
-		"movq %0, %%rax\n"
+		"movq %0, %%rax\n" 
 		"movq %1, %%rcx\n"
 		"movq %%r15, 0(%%rax)\n"
 		"movq %%r14, 8(%%rax)\n"
@@ -675,14 +674,6 @@ allocate_tid(void)
 	return tid;
 }
 
-bool my_less_func(const struct list_elem *a, const struct list_elem *b, void *aux)
-{
-
-	struct thread *a_dot = list_entry(a, struct thread, elem);
-	struct thread *b_dot = list_entry(b, struct thread, elem);
-
-	return a_dot->endTick < b_dot->endTick;
-}
 
 void wake_up(int64_t ticks)
 {
